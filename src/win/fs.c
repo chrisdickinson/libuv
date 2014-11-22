@@ -1588,6 +1588,57 @@ static void fs__readlink(uv_fs_t* req) {
 }
 
 
+static void fs__info(uv_fs_t* req) {
+	static char volumeNameBuffer[32];
+	DWORD sectorsPerCluster;
+	DWORD bytesPerSector;
+	DWORD clustersFree;
+	DWORD clustersTotal;
+	DWORD serialNumber;
+	DWORD maxComponentLength;
+	DWORD fsFlags;
+  int r;
+
+  r = GetDiskFreeSpace(
+    req->path,
+    &sectorsPerCluster, 
+    &bytesPerSector, 
+    &clustersFree, 
+    &clustersTotal
+  );
+  if (r == 0) {
+    SET_REQ_WIN32_ERROR(req, GetLastError());
+    return;
+  }
+  r = GetVolumePathName(req->path, volumeNameBuffer, 32);
+  if (r == 0) {
+    SET_REQ_WIN32_ERROR(req, GetLastError());
+    return;
+  }
+  r = GetVolumeInformation(
+    volumeNameBuffer, 
+    NULL, 
+    0, 
+    &serialNumber,
+    &maxComponentLength,
+    &fsFlags,
+    NULL,
+    0
+  );
+  if (r == 0) {
+    SET_REQ_WIN32_ERROR(req, GetLastError());
+    return;
+  }
+
+  req->infobuf.bavail = clustersFree;
+  req->infobuf.bfree = clustersFree;
+  req->infobuf.blocks = clustersTotal;
+  req->infobuf.fsid = serialNumber;
+  req->infobuf.frsize = sectorsPerCluster * bytesPerSector;
+  req->infobuf.namemax = maxComponentLength;
+  req->infobuf.ronly = (fsFlags & FILE_READ_ONLY_VOLUME) == FILE_READ_ONLY_VOLUME;
+}
+
 
 static void fs__chown(uv_fs_t* req) {
   req->result = 0;
@@ -1613,6 +1664,7 @@ static void uv__fs_work(struct uv__work* w) {
     XX(WRITE, write)
     XX(SENDFILE, sendfile)
     XX(STAT, stat)
+	XX(INFO, info)
     XX(LSTAT, lstat)
     XX(FSTAT, fstat)
     XX(FTRUNCATE, ftruncate)

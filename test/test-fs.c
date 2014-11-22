@@ -152,6 +152,12 @@ static void link_cb(uv_fs_t* req) {
 }
 
 
+static void info_cb(uv_fs_t* req) {
+  ASSERT(req->fs_type == UV_FS_INFO);
+  ASSERT(req->result == 0);
+  uv_fs_req_cleanup(req);
+}
+
 static void symlink_cb(uv_fs_t* req) {
   ASSERT(req->fs_type == UV_FS_SYMLINK);
   ASSERT(req->result == 0);
@@ -1966,6 +1972,18 @@ TEST_IMPL(fs_open_dir) {
   ASSERT(open_cb_count == 1);
 
   MAKE_VALGRIND_HAPPY();
+  return 0;
+}
+
+
+TEST_IMPL(fs_info) {
+  const char* path;
+  uv_fs_t req;
+  int r, file;
+  path = ".";
+  loop = uv_default_loop();
+
+  r = uv_fs_info(loop, &req, path, info_cb);
   return 0;
 }
 
