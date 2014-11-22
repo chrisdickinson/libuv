@@ -210,6 +210,7 @@ typedef struct uv_idle_s uv_idle_t;
 typedef struct uv_async_s uv_async_t;
 typedef struct uv_process_s uv_process_t;
 typedef struct uv_fs_event_s uv_fs_event_t;
+typedef struct uv_fs_stats_s uv_fs_stats_t;
 typedef struct uv_fs_poll_s uv_fs_poll_t;
 typedef struct uv_signal_s uv_signal_t;
 
@@ -325,6 +326,17 @@ typedef struct {
   uv_timespec_t st_ctim;
   uv_timespec_t st_birthtim;
 } uv_stat_t;
+
+
+typedef struct {
+  uint64_t bfree;
+  uint64_t bavail;
+  uint64_t frsize;
+  uint64_t blocks;
+  uint64_t namemax;
+  uint32_t fsid;
+  uint32_t ronly;
+} uv_fsinfo_t;
 
 
 typedef void (*uv_fs_event_cb)(uv_fs_event_t* handle,
@@ -1016,6 +1028,7 @@ typedef enum {
   UV_FS_READ,
   UV_FS_WRITE,
   UV_FS_SENDFILE,
+  UV_FS_INFO,
   UV_FS_STAT,
   UV_FS_LSTAT,
   UV_FS_FSTAT,
@@ -1050,6 +1063,7 @@ struct uv_fs_s {
   void* ptr;
   const char* path;
   uv_stat_t statbuf;  /* Stores the result of uv_fs_stat() and uv_fs_fstat(). */
+  uv_fsinfo_t infobuf;
   UV_FS_PRIVATE_FIELDS
 };
 
@@ -1102,6 +1116,10 @@ UV_EXTERN int uv_fs_scandir(uv_loop_t* loop,
                             uv_fs_cb cb);
 UV_EXTERN int uv_fs_scandir_next(uv_fs_t* req,
                                  uv_dirent_t* ent);
+UV_EXTERN int uv_fs_info(uv_loop_t* loop,
+                         uv_fs_t* req,
+                         const char* path,
+                         uv_fs_cb cb);
 UV_EXTERN int uv_fs_stat(uv_loop_t* loop,
                          uv_fs_t* req,
                          const char* path,

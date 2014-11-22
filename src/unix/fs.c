@@ -743,6 +743,26 @@ static int uv__fs_fstat(int fd, uv_stat_t *buf) {
 }
 
 
+static int uv__fs_info(const char* path, uv_fsinfo_t* buf) {
+  struct statvfs sbuf;
+  int r;
+  
+  r = statvfs(path, &sbuf);
+  if (r != 0) {
+    return r;
+  }
+
+  buf->namemax = sbuf.f_namemax;
+  buf->blocks = sbuf.f_blocks;
+  buf->bfree = sbuf.f_bfree;
+  buf->bavail = sbuf.f_bavail;
+  buf->frsize = sbuf.f_frsize;
+  buf->ronly = sbuf.f_flag | ST_RDONLY;
+  buf->fsid = sbuf.f_fsid;
+  return 0;
+}
+
+
 static void uv__fs_work(struct uv__work* w) {
   int retry_on_eintr;
   uv_fs_t* req;
@@ -771,6 +791,7 @@ static void uv__fs_work(struct uv__work* w) {
     X(FCHOWN, fchown(req->file, req->uid, req->gid));
     X(FDATASYNC, uv__fs_fdatasync(req));
     X(FSTAT, uv__fs_fstat(req->file, &req->statbuf));
+    X(INFO, uv__fs_info(req->path, &req->infobuf));
     X(FSYNC, fsync(req->file));
     X(FTRUNCATE, ftruncate(req->file, req->off));
     X(FUTIME, uv__fs_futime(req));
@@ -1104,6 +1125,13 @@ int uv_fs_sendfile(uv_loop_t* loop,
   req->file = out_fd;
   req->off = off;
   req->bufsml[0].len = len;
+  POST;
+}
+
+
+int uv_fs_info(uv_loop_t* loop, uv_fs_t* req, const char* path, uv_fs_cb cb) {
+  INIT(INFO);
+  PATH;
   POST;
 }
 
