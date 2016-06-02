@@ -200,5 +200,7 @@ source_set("libuv") {
     }
   }
 
-  configs -= [ "//build/config/clang:extra_warnings" ]
+  if (is_clang) {
+    configs -= [ "//build/config/clang:extra_warnings" ]
+  }
 }
